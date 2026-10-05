@@ -1,0 +1,40 @@
+cabal-version:      3.0
+name:               hs2json
+version:            0.1.0.0
+synopsis:           JSON pretty-printing and QuickCheck testing
+description:        A Haskell library and executable for JSON manipulation, developed as a tutorial project.
+license:            MIT
+author:             Dupla
+maintainer:         dupla@example.com
+category:           Text
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+    exposed-modules:  JSON
+    build-depends:    base >=4.14 && <5,
+                      containers
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+executable hs2json
+    import:           warnings
+    main-is:          Main.hs
+    build-depends:    base >=4.14 && <5,
+                      hs2json
+    hs-source-dirs:   app
+    default-language: Haskell2010
+
+test-suite hs2json-test
+    import:           warnings
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Spec.hs
+    build-depends:    base >=4.14 && <5,
+                      hs2json,
+                      QuickCheck >=2.14 && <3
