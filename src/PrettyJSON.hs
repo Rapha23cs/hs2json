@@ -5,7 +5,7 @@ import Data.Bits ((.&.), shiftR)
 import Data.Char (ord)
 import Numeric (showHex)
 
-import JSON (JValue(..))
+import SimpleJSON (JValue(..))
 import Prettify (Doc, (<>), char, double, hcat, line, nest, pretty, punctuate, text)
 
 -- | Render JSON using two-space indentation. Non-finite numbers become null,

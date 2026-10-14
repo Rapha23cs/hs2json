@@ -1,6 +1,6 @@
 module Main (main) where
 
-import JSON (JValue(..))
+import SimpleJSON (JValue(..))
 import PrettyJSON (renderJValue)
 
 main :: IO ()

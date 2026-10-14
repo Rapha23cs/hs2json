@@ -9,6 +9,7 @@ Este projeto tem como foco aplicar conceitos modernos de desenvolvimento em Hask
 ## Estrutura do Projeto
 
 - `src/JSON.hs`: Definição da Árvore de Sintaxe Abstrata (AST) para os valores JSON (`JValue`).
+- `src/SimpleJSON.hs`: Interface compatível com o tutorial, reexportando o mesmo `JValue` e fornecendo accessors seguros.
 - `src/Prettify.hs`: Biblioteca de documentos (`Doc`) e combinadores de formatação com indentação.
 - `src/PrettyJSON.hs`: Módulo responsável por converter os valores JSON em strings legíveis.
 - `app/Main.hs`: Ponto de entrada do executável.
@@ -28,7 +29,7 @@ Para rodar o executável:
 cabal run hs2json
 ```
 
-Para executar as verificações de formatação:
+Para executar as verificações de formatação e accessors:
 ```bash
 cabal test
 ```
@@ -43,8 +44,9 @@ pode permanecer em Documentos.
 
 A fundação do projeto (AST e estrutura do Cabal) já está pronta e na branch `main`.
 O passo de pretty printing descrito abaixo está implementado e serve como registro
-do combinado entre a dupla. Há verificações determinísticas de formatação via
-`cabal test`; os próximos passos são os accessors e as propriedades com QuickCheck.
+do combinado entre a dupla. Há verificações determinísticas de formatação e
+accessors via `cabal test`; a próxima etapa é o gerador limitado de `JValue` e
+pelo menos cinco propriedades com QuickCheck.
 
 ### Comportamento do pretty printer
 
@@ -54,6 +56,18 @@ Unicode são escapados, incluindo pares substitutos para caracteres acima de
 U+FFFF. Objetos e arrays vazios são impressos como `{}` e `[]`. Números `NaN` e
 infinitos são representados como `null`, pois não existem no formato JSON.
 O executável demonstra valores aninhados e escapes.
+
+### Accessors seguros
+
+Importe `SimpleJSON` para usar `getString`, `getInt`, `getDouble`, `getBool`,
+`getObject`, `getArray` e `isNull`. Os accessors retornam `Just` para o tipo
+correspondente e `Nothing` para tipos incompatíveis; `isNull` retorna `Bool`.
+`getInt` trunca a parte decimal em direção a zero (`5.8` vira `Just 5` e `-5.8`
+vira `Just (-5)`). Números não finitos ou resultados fora do intervalo de `Int`
+retornam `Nothing`. `getDouble` preserva o número armazenado.
+
+`JSON` continua disponível para os imports existentes; `SimpleJSON` reexporta
+seus construtores, sem criar um segundo tipo `JValue`.
 
 1. **Desenvolver o Pretty Printing:** 
    - Garanta que a função `renderJValue :: JValue -> String` esteja corretamente implementada no arquivo `src/PrettyJSON.hs`.
