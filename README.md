@@ -80,11 +80,36 @@ retornam `Nothing`. `getDouble` preserva o número armazenado.
 `JSON` continua disponível para os imports existentes; `SimpleJSON` reexporta
 seus construtores, sem criar um segundo tipo `JValue`.
 
-1. **Desenvolver o Pretty Printing:** 
-   - Garanta que a função `renderJValue :: JValue -> String` esteja corretamente implementada no arquivo `src/PrettyJSON.hs`.
-   - Se certifique que o `app/Main.hs` faz uso dessa função para testar o output.
-2. **Realizar o Commit:**
-   - Após revisar os arquivos da Parte 2 (Pretty Printing), faça o commit dessas alterações utilizando a nomenclatura oficial (`feat:`). 
-   - Exemplo de comando: `git commit -m "feat: implement JSON pretty printing"`
-3. **Enviar (Push):**
-   - Suba suas alterações para a nuvem com `git push origin main`.
+---
+
+## 📌 Checklist de Especificações Técnicas e Tarefas Pendentes (Para a Dupla)
+
+Status atual do projeto com base nas especificações técnicas oficiais:
+
+- [x] **A. Tipo de Dados e Accessors (`src/SimpleJSON.hs`):**
+  - Definição da AST `JValue` e dos 7 acessadores seguros (`getString`, `getInt`, `getDouble`, `getBool`, `getObject`, `getArray`, `isNull`).
+- [x] **B. Pretty Printer JSON (`src/Prettify.hs` e `src/PrettyJSON.hs`):**
+  - Tipo abstrato `Doc`, combinadores de formatação, indentação de 2 espaços e escape completo (Unicode, controle e pares substitutos para plano astral).
+- [x] **C. QuickCheck Base (`test/Spec.hs`):**
+  - Instância `Arbitrary JValue` com gerador limitado por `resize (n `div` 2) (listOf ...)` para evitar consumo exponencial de memória.
+  - 7 propriedades fundamentais já implementadas e verificadas.
+
+---
+
+### 📝 O que falta fazer (Ficará sob sua responsabilidade)
+
+1. **Propriedades adicionais de QuickCheck no `test/Spec.hs`:**
+   - **Corretude dos escapes:** Adicionar propriedade que gere strings aleatórias e valide que `renderJValue (JString s)` nunca contém caracteres de controle sem escape (como `\n`, `\t` ou caracteres `< ' '`) e sempre inicia e termina com aspas duplas `"`.
+   - **Idempotência ou invariantes extras:** Adicionar propriedade testando invariantes adicionais mencionadas no tutorial (ex: idempotência de renderização).
+   - Commit sugerido: `test: add escape correctness and idempotency properties`
+
+2. **Garantir falha de exit code na suíte de testes (`test/Spec.hs`):**
+   - Substituir as chamadas diretas de `quickCheck` por `quickCheckResult` com verificação via `unless (isSuccess res) (exitFailure)` (importando `System.Exit`), garantindo que o comando `cabal test` retorne código de erro se algum teste falhar na avaliação automatizada.
+   - Commit sugerido: `test: enforce exitFailure on QuickCheck property failure`
+
+3. **Expansão do Executável (`app/Main.hs`):**
+   - Permitir receber argumentos pela linha de comando (`getArgs`) ou ler JSON da entrada padrão (`getContents`) para formatar dados externos.
+   - Commit sugerido: `feat: add CLI options and stdin support to hs2json executable`
+
+4. **Validação Final:**
+   - Executar `cabal test` no ambiente para garantir que todas as asserções e propriedades passem com 100 testes cada.
