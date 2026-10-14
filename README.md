@@ -40,13 +40,24 @@ pode permanecer em Documentos.
 
 ---
 
-## 📝 Combinado da etapa de Pretty Printing (concluída)
+## 📝 Etapas e combinados da dupla
 
-A fundação do projeto (AST e estrutura do Cabal) já está pronta e na branch `main`.
-O passo de pretty printing descrito abaixo está implementado e serve como registro
-do combinado entre a dupla. Há verificações determinísticas de formatação e
-accessors via `cabal test`; a próxima etapa é o gerador limitado de `JValue` e
-pelo menos cinco propriedades com QuickCheck.
+A fundação do projeto (AST e estrutura do Cabal), o pretty printing com combinadores `Doc` e os acessadores seguros em `SimpleJSON` já estão implementados na branch `main`.
+
+A suíte de testes em `test/Spec.hs` executa 29 asserções determinísticas e 7 propriedades com QuickCheck via `cabal test`.
+
+### Testes com QuickCheck
+
+O gerador `Arbitrary JValue` foi construído com controle de tamanho (`sized` e `resize`) para limitar a profundidade de recursão em `JArray` e `JObject`.
+
+As seguintes propriedades são testadas:
+- `prop_renderNotEmpty`: qualquer valor JSON produz texto não-vazio.
+- `prop_renderDelimiters`: arrays e objetos sempre respeitam os delimitadores `[]` e `{}`.
+- `prop_isNullConsistent`: coerência entre `Simple.isNull v` e `v == JNull`.
+- `prop_getStringRoundtrip`: recuperação de strings via `getString`.
+- `prop_getBoolRoundtrip`: recuperação de booleanos via `getBool`.
+- `prop_getArrayRoundtrip`: preservação da lista de elementos via `getArray`.
+- `prop_getObjectRoundtrip`: preservação dos campos de chave-valor via `getObject`.
 
 ### Comportamento do pretty printer
 

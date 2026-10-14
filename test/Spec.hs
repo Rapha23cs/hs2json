@@ -2,6 +2,7 @@ module Main (main) where
 
 import Prelude hiding ((<>))
 import Control.Monad (unless)
+import Test.QuickCheck
 import JSON (JValue(..))
 import PrettyJSON (renderJValue)
 import Prettify
@@ -9,6 +10,64 @@ import qualified SimpleJSON as Simple
 
 assert :: String -> Bool -> IO ()
 assert label condition = unless condition (fail label)
+
+-- Gerador limitado para JValue, controlando o tamanho para evitar explosão recursiva
+instance Arbitrary JValue where
+    arbitrary = sized genJValue
+      where
+        genJValue 0 = oneof
+            [ JString <$> arbitrary
+            , JNumber <$> arbitrary
+            , JBool   <$> arbitrary
+            , pure JNull
+            ]
+        genJValue n = frequency
+            [ (2, JString <$> arbitrary)
+            , (2, JNumber <$> arbitrary)
+            , (2, JBool   <$> arbitrary)
+            , (1, pure JNull)
+            , (1, JArray  <$> resize (n `div` 2) (listOf (genJValue (n `div` 2))))
+            , (1, JObject <$> resize (n `div` 2) (listOf (genPair (n `div` 2))))
+            ]
+        genPair n = do
+            k <- arbitrary
+            v <- genJValue n
+            return (k, v)
+
+-- Propriedades com QuickCheck
+
+-- 1. Qualquer JSON renderizado produz uma string não vazia
+prop_renderNotEmpty :: JValue -> Bool
+prop_renderNotEmpty v = not (null (renderJValue v))
+
+-- 2. Delimitadores externos de objetos e arrays são sempre preservados
+prop_renderDelimiters :: JValue -> Bool
+prop_renderDelimiters v = case v of
+    JObject _ -> head out == '{' && last out == '}'
+    JArray _  -> head out == '[' && last out == ']'
+    _         -> True
+  where
+    out = renderJValue v
+
+-- 3. isNull é verdadeiro se e somente se o valor for JNull
+prop_isNullConsistent :: JValue -> Bool
+prop_isNullConsistent v = Simple.isNull v == (v == JNull)
+
+-- 4. getString recupera a string armazenada em JString
+prop_getStringRoundtrip :: String -> Bool
+prop_getStringRoundtrip s = Simple.getString (JString s) == Just s
+
+-- 5. getBool recupera o booleano armazenado em JBool
+prop_getBoolRoundtrip :: Bool -> Bool
+prop_getBoolRoundtrip b = Simple.getBool (JBool b) == Just b
+
+-- 6. getArray recupera a lista original de elementos
+prop_getArrayRoundtrip :: [JValue] -> Bool
+prop_getArrayRoundtrip xs = Simple.getArray (JArray xs) == Just xs
+
+-- 7. getObject recupera a lista original de pares chave-valor
+prop_getObjectRoundtrip :: [(String, JValue)] -> Bool
+prop_getObjectRoundtrip ps = Simple.getObject (JObject ps) == Just ps
 
 main :: IO ()
 main = do
@@ -48,3 +107,12 @@ main = do
     assert "array" (Simple.getArray (JArray [JBool True]) == Just [JBool True] && Simple.getArray (JObject []) == Nothing)
     assert "null" (Simple.isNull JNull && not (Simple.isNull (JString "null")))
     putStrLn "13 accessor checks passed."
+
+    putStrLn "\n--- QuickCheck Properties ---"
+    quickCheck prop_renderNotEmpty
+    quickCheck prop_renderDelimiters
+    quickCheck prop_isNullConsistent
+    quickCheck prop_getStringRoundtrip
+    quickCheck prop_getBoolRoundtrip
+    quickCheck prop_getArrayRoundtrip
+    quickCheck prop_getObjectRoundtrip

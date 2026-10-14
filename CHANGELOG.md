@@ -7,6 +7,8 @@
 * Demonstrate nested JSON in the executable and add rendering regression checks.
 * Add `SimpleJSON` accessors sharing the original `JSON.JValue` type.
 * Reject non-finite and out-of-range integer conversions safely.
+* Add bounded `Arbitrary JValue` generator for QuickCheck.
+* Add property-based tests for rendering and accessors.
 
 ## 0.1.0.0 -- 2026-10-05
 
