@@ -2,6 +2,7 @@ module Main (main) where
 
 import Prelude hiding ((<>))
 import Control.Monad (unless)
+import Data.Char (isHexDigit, ord)
 import Test.QuickCheck
 import JSON (JValue(..))
 import PrettyJSON (renderJValue)
@@ -69,6 +70,72 @@ prop_getArrayRoundtrip xs = Simple.getArray (JArray xs) == Just xs
 prop_getObjectRoundtrip :: [(String, JValue)] -> Bool
 prop_getObjectRoundtrip ps = Simple.getObject (JObject ps) == Just ps
 
+-- 8. Strings ficam entre aspas e usam somente escapes validos de JSON.
+-- O gerador inclui controles, aspas, barras, Unicode BMP e plano astral.
+prop_stringEscapes :: Property
+prop_stringEscapes = forAllShrink genEscapeString shrink $ \s ->
+    let out = renderJValue (JString s)
+    in conjoin
+        [ counterexample "Caractere de controle sem escape" $
+            all (\c -> ord c >= 0x20) out
+        , counterexample ("String JSON invalida: " ++ show out) $
+            validJSONString out
+        ]
+
+genEscapeString :: Gen String
+genEscapeString = listOf $ frequency
+    [ (3, arbitrary)
+    , (2, elements "\"\\/")
+    , (2, choose ('\0', '\x1f'))
+    , (2, choose ('\x80', '\xffff'))
+    , (2, choose ('\x10000', '\x10ffff'))
+    ]
+
+-- Valida a sintaxe sem reutilizar as funcoes de escape do pretty printer.
+-- Uma barra exige um escape simples permitido ou exatamente 4 digitos hex.
+validJSONString :: String -> Bool
+validJSONString ('"':rest) = scan rest
+  where
+    scan ['"'] = True
+    scan ('\\':'u':remaining) =
+        let (digits, suffix) = splitAt 4 remaining
+        in length digits == 4 && all isHexDigit digits && scan suffix
+    scan ('\\':escaped:remaining) =
+        escaped `elem` "\"\\/bfnrt" && scan remaining
+    scan (c:remaining) = c >= ' ' && c /= '"' && c /= '\\' && scan remaining
+    scan [] = False
+validJSONString _ = False
+
+-- 9. Agrupar duas vezes nao altera o resultado de agrupar uma vez.
+-- E idempotencia de layout de Doc, nao re-renderizacao de texto como JString.
+prop_groupIdempotent :: Property
+prop_groupIdempotent = forAll genDoc $ \doc ->
+    forAll (choose (0, 120)) $ \width ->
+        conjoin
+            [ pretty width (group (group doc)) === pretty width (group doc)
+            , compact (group (group doc)) === compact (group doc)
+            ]
+
+-- Documentos variados e limitados, com concatenacao, quebras e indentacao.
+genDoc :: Gen Doc
+genDoc = sized generateDoc
+  where
+    atom = oneof
+        [ pure empty
+        , pure line
+        , text <$> resize 10 (listOf (elements ['a'..'z']))
+        ]
+    generateDoc n
+        | n <= 0 = atom
+        | otherwise = frequency
+            [ (4, atom)
+            , (2, (<>) <$> child <*> child)
+            , (1, nest <$> choose (0, 4) <*> child)
+            , (1, group <$> child)
+            ]
+      where
+        child = generateDoc (n `div` 2)
+
 main :: IO ()
 main = do
     assert "empty object" (renderJValue (JObject []) == "{}")
@@ -116,3 +183,5 @@ main = do
     quickCheck prop_getBoolRoundtrip
     quickCheck prop_getArrayRoundtrip
     quickCheck prop_getObjectRoundtrip
+    quickCheck prop_stringEscapes
+    quickCheck prop_groupIdempotent
