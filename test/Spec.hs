@@ -3,11 +3,17 @@ module Main (main) where
 import Prelude hiding ((<>))
 import Control.Monad (unless)
 import Data.Char (isHexDigit, ord)
+import System.Exit (exitFailure)
 import Test.QuickCheck
 import JSON (JValue(..))
 import PrettyJSON (renderJValue)
 import Prettify
 import qualified SimpleJSON as Simple
+
+check :: Testable prop => prop -> IO ()
+check prop = do
+    res <- quickCheckResult prop
+    unless (isSuccess res) exitFailure
 
 assert :: String -> Bool -> IO ()
 assert label condition = unless condition (fail label)
@@ -176,12 +182,12 @@ main = do
     putStrLn "13 accessor checks passed."
 
     putStrLn "\n--- QuickCheck Properties ---"
-    quickCheck prop_renderNotEmpty
-    quickCheck prop_renderDelimiters
-    quickCheck prop_isNullConsistent
-    quickCheck prop_getStringRoundtrip
-    quickCheck prop_getBoolRoundtrip
-    quickCheck prop_getArrayRoundtrip
-    quickCheck prop_getObjectRoundtrip
-    quickCheck prop_stringEscapes
-    quickCheck prop_groupIdempotent
+    check prop_renderNotEmpty
+    check prop_renderDelimiters
+    check prop_isNullConsistent
+    check prop_getStringRoundtrip
+    check prop_getBoolRoundtrip
+    check prop_getArrayRoundtrip
+    check prop_getObjectRoundtrip
+    check prop_stringEscapes
+    check prop_groupIdempotent
