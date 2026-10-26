@@ -1,115 +1,265 @@
 # hs2json
 
-Um projeto Haskell para manipulação e formatação (*pretty-printing*) de JSON, desenvolvido como projeto em dupla e guiado pelo tutorial da LambdaGeo.
+Biblioteca e ferramenta de linha de comando em **Haskell** para ler, representar e formatar (*pretty-printing*) documentos JSON, com testes baseados em propriedades via **QuickCheck**.
 
-Este projeto tem como foco aplicar conceitos modernos de desenvolvimento em Haskell, incluindo:
-- **Modularização com Cabal:** Separação clara entre biblioteca (`src`), executável (`app`) e testes (`test`).
-- **Testes Baseados em Propriedades:** Uso da biblioteca QuickCheck para garantir a integridade das funções de formatação.
+Projeto em dupla, desenvolvido a partir do tutorial oficial da LambdaGeo: [Construindo e testando uma biblioteca Haskell: JSON, Pretty Printing e QuickCheck](https://lambdageo-edu.github.io/lambdageo-tutorials/haskell/).
 
-## Estrutura do Projeto
+## 🎥 Vídeo de demonstração
 
-- `src/JSON.hs`: Definição da Árvore de Sintaxe Abstrata (AST) para os valores JSON (`JValue`).
-- `src/SimpleJSON.hs`: Interface compatível com o tutorial, reexportando o mesmo `JValue` e fornecendo accessors seguros.
-- `src/Prettify.hs`: Biblioteca de documentos (`Doc`) e combinadores de formatação com indentação.
-- `src/PrettyJSON.hs`: Módulo responsável por converter os valores JSON em strings legíveis.
-- `app/Main.hs`: Ponto de entrada do executável.
-- `test/Spec.hs`: Arquivo principal da suíte de testes.
+[Assista à demonstração do projeto rodando (`cabal build`, `cabal test`, `cabal run`)](https://drive.google.com/file/d/1VKUELSeop1dJsF09Vwv8mCIzpUFU4hjI/view?usp=sharing)
 
-## Como Executar
+## 👥 Autores
 
-Certifique-se de ter o `cabal` e o `GHC` (ou o `GHCup`) instalados.
+- Raphael Sá ([@Rapha23cs](https://github.com/Rapha23cs))
+- Daniel Lucas Silva Aires ([@DanielLSA](https://github.com/DanielLSA))
 
-Para compilar o projeto:
-```bash
-cabal build
-```
-
-Para rodar o executável:
-```bash
-cabal run hs2json
-```
-
-Para executar as verificações de formatação e accessors:
-```bash
-cabal test
-```
-
-No Windows, prefira o caminho curto padrão `C:\ghcup` para as ferramentas,
-evitando limites de comprimento de caminhos durante a instalação. O projeto
-pode permanecer em Documentos.
+O histórico de commits do repositório mostra a contribuição incremental de cada integrante.
 
 ---
 
-## 📝 Etapas e combinados da dupla
+## 📚 Sumário
 
-A fundação do projeto (AST e estrutura do Cabal), o pretty printing com combinadores `Doc` e os acessadores seguros em `SimpleJSON` já estão implementados na branch `main`.
-
-A suíte de testes em `test/Spec.hs` executa 29 asserções determinísticas e 7 propriedades com QuickCheck via `cabal test`.
-
-### Testes com QuickCheck
-
-O gerador `Arbitrary JValue` foi construído com controle de tamanho (`sized` e `resize`) para limitar a profundidade de recursão em `JArray` e `JObject`.
-
-As seguintes propriedades são testadas:
-- `prop_renderNotEmpty`: qualquer valor JSON produz texto não-vazio.
-- `prop_renderDelimiters`: arrays e objetos sempre respeitam os delimitadores `[]` e `{}`.
-- `prop_isNullConsistent`: coerência entre `Simple.isNull v` e `v == JNull`.
-- `prop_getStringRoundtrip`: recuperação de strings via `getString`.
-- `prop_getBoolRoundtrip`: recuperação de booleanos via `getBool`.
-- `prop_getArrayRoundtrip`: preservação da lista de elementos via `getArray`.
-- `prop_getObjectRoundtrip`: preservação dos campos de chave-valor via `getObject`.
-
-### Comportamento do pretty printer
-
-`renderJValue :: JValue -> String` usa documentos `Doc` internamente e produz JSON
-com indentação de dois espaços, sem vírgulas finais. Caracteres de controle e
-Unicode são escapados, incluindo pares substitutos para caracteres acima de
-U+FFFF. Objetos e arrays vazios são impressos como `{}` e `[]`. Números `NaN` e
-infinitos são representados como `null`, pois não existem no formato JSON.
-O executável demonstra valores aninhados e escapes.
-
-### Accessors seguros
-
-Importe `SimpleJSON` para usar `getString`, `getInt`, `getDouble`, `getBool`,
-`getObject`, `getArray` e `isNull`. Os accessors retornam `Just` para o tipo
-correspondente e `Nothing` para tipos incompatíveis; `isNull` retorna `Bool`.
-`getInt` trunca a parte decimal em direção a zero (`5.8` vira `Just 5` e `-5.8`
-vira `Just (-5)`). Números não finitos ou resultados fora do intervalo de `Int`
-retornam `Nothing`. `getDouble` preserva o número armazenado.
-
-`JSON` continua disponível para os imports existentes; `SimpleJSON` reexporta
-seus construtores, sem criar um segundo tipo `JValue`.
+- [Funcionalidades](#-funcionalidades)
+- [Estrutura do projeto](#-estrutura-do-projeto)
+- [Pré-requisitos](#-pré-requisitos)
+- [Compilar, testar e executar](#-compilar-testar-e-executar)
+- [Uso da CLI](#-uso-da-cli)
+- [Exemplo de entrada e saída](#-exemplo-de-entrada-e-saída)
+- [API da biblioteca](#-api-da-biblioteca)
+- [Testes](#-testes)
+- [Decisões de projeto](#-decisões-de-projeto)
+- [Fluxo de trabalho da dupla](#-fluxo-de-trabalho-da-dupla)
 
 ---
 
-## 📌 Checklist de Especificações Técnicas e Tarefas Pendentes (Para a Dupla)
+## ✨ Funcionalidades
 
-Status atual do projeto com base nas especificações técnicas oficiais:
+- **AST de JSON** (`JValue`) com os seis construtores canônicos: string, número, booleano, nulo, array e objeto.
+- **Accessors seguros** (`getString`, `getInt`, `getDouble`, `getBool`, `getObject`, `getArray`, `isNull`) que retornam `Maybe` em vez de falhar.
+- **Pretty printer** baseado em um tipo abstrato `Doc`, com indentação de 2 espaços e quebras de linha para legibilidade.
+- **Escape correto de strings**: `\n`, `\t`, aspas, barras, caracteres de controle, Unicode BMP e pares substitutos UTF-16 para caracteres acima de U+FFFF (como emojis).
+- **Parser de JSON** (`ParseJSON.parseJSON`) escrito com `ReadP`, que já faz parte do `base`, sem dependências externas.
+- **CLI** que lê JSON por argumento, arquivo ou entrada padrão.
+- **Testes** determinísticos, de propriedades (QuickCheck) e de integração com o executável real.
 
-- [x] **A. Tipo de Dados e Accessors (`src/SimpleJSON.hs`):**
-  - Definição da AST `JValue` e dos 7 acessadores seguros (`getString`, `getInt`, `getDouble`, `getBool`, `getObject`, `getArray`, `isNull`).
-- [x] **B. Pretty Printer JSON (`src/Prettify.hs` e `src/PrettyJSON.hs`):**
-  - Tipo abstrato `Doc`, combinadores de formatação, indentação de 2 espaços e escape completo (Unicode, controle e pares substitutos para plano astral).
-- [x] **C. QuickCheck Base (`test/Spec.hs`):**
-  - Instância `Arbitrary JValue` com gerador limitado por `resize (n `div` 2) (listOf ...)` para evitar consumo exponencial de memória.
-  - 7 propriedades fundamentais já implementadas e verificadas.
+## 🗂 Estrutura do projeto
 
----
+```text
+hs2json/
+├── hs2json.cabal          # Biblioteca, executável e suítes de teste
+├── CHANGELOG.md
+├── app/
+│   └── Main.hs            # Executável (CLI)
+├── src/
+│   ├── JSON.hs            # Definição da AST (JValue)
+│   ├── SimpleJSON.hs      # Interface do tutorial: reexporta JValue + accessors seguros
+│   ├── ParseJSON.hs       # Parser: String -> Either String JValue
+│   ├── Prettify.hs        # Biblioteca de documentos (Doc) e combinadores
+│   └── PrettyJSON.hs      # Renderização de JValue em texto
+├── test/
+│   ├── Spec.hs            # Testes determinísticos + propriedades QuickCheck
+│   └── CLISpec.hs         # Parser e testes de integração da CLI
+├── examples/
+│   └── entrada.json       # JSON de exemplo para a CLI
+└── docs/
+    └── CLI.md             # Contrato detalhado da CLI
+```
 
-### 📝 O que falta fazer (Ficará sob sua responsabilidade)
+Componentes definidos em [hs2json.cabal](hs2json.cabal):
 
-1. **Propriedades adicionais de QuickCheck no `test/Spec.hs`:**
-   - **Corretude dos escapes:** Adicionar propriedade que gere strings aleatórias e valide que `renderJValue (JString s)` nunca contém caracteres de controle sem escape (como `\n`, `\t` ou caracteres `< ' '`) e sempre inicia e termina com aspas duplas `"`.
-   - **Idempotência ou invariantes extras:** Adicionar propriedade testando invariantes adicionais mencionadas no tutorial (ex: idempotência de renderização).
-   - Commit sugerido: `test: add escape correctness and idempotency properties`
+| Componente | Nome | Descrição |
+| :--- | :--- | :--- |
+| `library` | `hs2json` | Módulos expostos: `JSON`, `SimpleJSON`, `ParseJSON`, `Prettify`, `PrettyJSON` |
+| `executable` | `hs2json` | CLI em `app/Main.hs` |
+| `test-suite` | `hs2json-test` | `test/Spec.hs` — asserções e propriedades QuickCheck |
+| `test-suite` | `hs2json-cli-test` | `test/CLISpec.hs` — parser e CLI de ponta a ponta |
 
-2. **Garantir falha de exit code na suíte de testes (`test/Spec.hs`):**
-   - Substituir as chamadas diretas de `quickCheck` por `quickCheckResult` com verificação via `unless (isSuccess res) (exitFailure)` (importando `System.Exit`), garantindo que o comando `cabal test` retorne código de erro se algum teste falhar na avaliação automatizada.
-   - Commit sugerido: `test: enforce exitFailure on QuickCheck property failure`
+Todos os componentes compilam com `-Wall`.
 
-3. **Expansão do Executável (`app/Main.hs`):**
-   - Permitir receber argumentos pela linha de comando (`getArgs`) ou ler JSON da entrada padrão (`getContents`) para formatar dados externos.
-   - Commit sugerido: `feat: add CLI options and stdin support to hs2json executable`
+## 🧰 Pré-requisitos
 
-4. **Validação Final:**
-   - Executar `cabal test` no ambiente para garantir que todas as asserções e propriedades passem com 100 testes cada.
+- **GHC** e **Cabal**, instalados preferencialmente pelo [GHCup](https://www.haskell.org/ghcup/).
+- No Windows, prefira o caminho curto padrão `C:\ghcup` para evitar limites de comprimento de caminhos durante a instalação.
+
+Verifique a instalação:
+
+```bash
+ghc --version
+cabal --version
+```
+
+## 🚀 Compilar, testar e executar
+
+Na raiz do repositório:
+
+```bash
+cabal build all     # compila biblioteca, executável e testes
+cabal test all --test-show-details=direct   # roda as duas suítes de teste
+cabal run hs2json   # executa a demonstração
+```
+
+## 💻 Uso da CLI
+
+Os argumentos depois de `--` são repassados ao executável. `-v0` reduz as mensagens do Cabal e deixa apenas a saída do programa.
+
+```bash
+# Ajuda e demonstração original
+cabal run -v0 hs2json -- --help
+cabal run -v0 hs2json -- --example
+
+# JSON passado como argumento
+cabal run -v0 hs2json -- --json '[1,true,null]'
+
+# Arquivo JSON (UTF-8)
+cabal run -v0 hs2json -- --file examples/entrada.json
+
+# Entrada padrão (lê até EOF)
+echo '{"nome":"Ana","ativo":true}' | cabal run -v0 hs2json -- -
+```
+
+| Opção | Descrição |
+| :--- | :--- |
+| `--json TEXTO` | Formata um JSON recebido como argumento |
+| `--file ARQUIVO` | Lê um arquivo JSON em UTF-8 (BOM inicial tolerado) |
+| `-` | Lê JSON da entrada padrão até o fim |
+| `--example` | Mostra a demonstração original |
+| `--help` | Mostra a ajuda |
+
+> [!NOTE]
+> O nome do arquivo precisa vir depois de `--file`. Passar apenas o nome do arquivo resulta em `Argumentos invalidos.`
+
+Em caso de JSON inválido, a mensagem de erro vai para `stderr` e o processo termina com código de saída diferente de zero. Os detalhes do contrato (limites, números, Unicode) estão em [docs/CLI.md](docs/CLI.md).
+
+## 🔎 Exemplo de entrada e saída
+
+Entrada ([examples/entrada.json](examples/entrada.json)):
+
+```json
+{"nome":"Ana","ativo":true,"itens":[1,2,3],"mensagem":"Olá\nHaskell 😀"}
+```
+
+Comando:
+
+```bash
+cabal run -v0 hs2json -- --file examples/entrada.json
+```
+
+Saída:
+
+```json
+{
+  "nome": "Ana",
+  "ativo": true,
+  "itens": [
+    1.0,
+    2.0,
+    3.0
+  ],
+  "mensagem": "Ol\u00e1\nHaskell \ud83d\ude00"
+}
+```
+
+O emoji vira o par substituto `\ud83d\ude00` e os números são impressos como `Double` (`1.0`).
+
+## 📖 API da biblioteca
+
+```haskell
+import SimpleJSON (JValue(..), getString, getInt, isNull)
+import PrettyJSON (renderJValue)
+import ParseJSON  (parseJSON)
+
+data JValue
+  = JString String
+  | JNumber Double
+  | JBool Bool
+  | JNull
+  | JObject [(String, JValue)]
+  | JArray [JValue]
+
+renderJValue :: JValue -> String
+parseJSON    :: String -> Either String JValue
+```
+
+### Accessors (`SimpleJSON`)
+
+| Função | Tipo |
+| :--- | :--- |
+| `getString` | `JValue -> Maybe String` |
+| `getInt` | `JValue -> Maybe Int` |
+| `getDouble` | `JValue -> Maybe Double` |
+| `getBool` | `JValue -> Maybe Bool` |
+| `getObject` | `JValue -> Maybe [(String, JValue)]` |
+| `getArray` | `JValue -> Maybe [JValue]` |
+| `isNull` | `JValue -> Bool` |
+
+- Tipos incompatíveis retornam `Nothing`.
+- `getInt` trunca a parte decimal em direção a zero (`5.8` vira `Just 5` e `-5.8` vira `Just (-5)`).
+- `getInt` retorna `Nothing` para `NaN`, infinitos e valores fora do intervalo de `Int`.
+
+### Pretty printer
+
+`renderJValue` usa documentos `Doc` internamente (`Prettify`) e produz JSON com indentação de dois espaços e sem vírgulas finais. Objetos e arrays vazios saem como `{}` e `[]`. `NaN` e infinitos são impressos como `null`, pois não existem no formato JSON.
+
+`Prettify` expõe os combinadores `empty`, `char`, `text`, `double`, `line`, `<>`, `hcat`, `fsep`, `</>`, `punctuate`, `group`, `softline`, `nest`, `compact` e `pretty`.
+
+### Parser
+
+`parseJSON` consome exatamente um valor JSON. Entrada vazia, conteúdo extra e sintaxe incompleta são erros. Substitutos Unicode isolados são rejeitados e pares substitutos são combinados.
+
+## 🧪 Testes
+
+```bash
+cabal test all --test-show-details=direct
+```
+
+### `hs2json-test` ([test/Spec.hs](test/Spec.hs))
+
+- **29 asserções determinísticas**: 16 de pretty printing (escapes, Unicode, indentação, `Doc`) e 13 de accessors.
+- **9 propriedades QuickCheck**:
+
+| # | Propriedade | O que verifica |
+| :-: | :--- | :--- |
+| 1 | `prop_renderNotEmpty` | Qualquer JSON renderizado é não vazio |
+| 2 | `prop_renderDelimiters` | Objetos e arrays começam e terminam com `{}` e `[]` |
+| 3 | `prop_isNullConsistent` | `isNull v` equivale a `v == JNull` |
+| 4 | `prop_getStringRoundtrip` | `getString (JString s) == Just s` |
+| 5 | `prop_getBoolRoundtrip` | `getBool (JBool b) == Just b` |
+| 6 | `prop_getArrayRoundtrip` | `getArray` preserva a lista de elementos |
+| 7 | `prop_getObjectRoundtrip` | `getObject` preserva os pares chave-valor |
+| 8 | `prop_stringEscapes` | Strings saem entre aspas, sem controles crus e com escapes JSON válidos |
+| 9 | `prop_groupIdempotent` | `group (group d)` produz o mesmo layout que `group d` |
+
+Cada propriedade roda 100 casos aleatórios e é executada por uma função auxiliar com `quickCheckResult` e `exitFailure`, então qualquer falha faz o `cabal test` retornar erro.
+
+### `hs2json-cli-test` ([test/CLISpec.hs](test/CLISpec.hs))
+
+- Parser: valores válidos, ida e volta (`parseJSON` e `renderJValue`) e entradas inválidas.
+- CLI chamando o executável real: `--json`, `--file` (incluindo caminho com espaços), UTF-8, BOM, entrada padrão, `--help`, `--example` e códigos de saída de erro.
+
+## 🧠 Decisões de projeto
+
+- **Gerador `Arbitrary JValue` limitado.** `JValue` é recursivo via listas (`JArray` e `JObject`). Usar apenas `sized` não basta, porque `listOf` usa o tamanho ambiente do QuickCheck (até 100) e a árvore cresce exponencialmente em largura, consumindo toda a memória. Por isso o gerador envolve `listOf` com `resize (n `div` 2)`, e largura e profundidade encolhem juntas até o caso base (apenas valores primitivos).
+- **`SimpleJSON` reexporta `JValue`.** O tipo é definido em `JSON` e reexportado por `SimpleJSON`, mantendo compatibilidade com o tutorial sem criar dois tipos distintos.
+- **Parser sem dependências externas.** `ReadP` faz parte do `base`, e o parser não avalia código nem executa comandos.
+- **Números como `Double`.** Inteiros muito grandes podem perder precisão e valores infinitos são rejeitados.
+
+## 🤝 Fluxo de trabalho da dupla
+
+- Commits pequenos e incrementais, seguindo [Conventional Commits](https://www.conventionalcommits.org/) (`init`, `feat`, `test`, `docs`).
+- Cada etapa do tutorial virou um ou mais commits: estrutura Cabal, pretty printer, accessors, testes QuickCheck, CLI e documentação.
+
+Histórico resumido:
+
+```text
+4c554e2 feat: add CLI options and stdin support to hs2json executable
+d9de8f2 test: enforce exitFailure on QuickCheck property failure
+17e5809 test: add escape correctness and idempotency properties
+028c4aa docs: list remaining tasks and technical requirements in README.md
+ab100fa test: add bounded JValue generator and QuickCheck properties
+481b141 feat: add safe JSON accessors
+251f845 feat: implement JSON pretty printing
+2e2891a docs: improve README.md
+437f01d init: setup initial project structure with Cabal
+```
+
+Consulte também o [CHANGELOG.md](CHANGELOG.md).
