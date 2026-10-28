@@ -1,6 +1,27 @@
-dist
+# ==========================================
+# hs2json - .gitignore
+# Regras para ignorar binários e artefatos de compilação
+# ==========================================
+
+# Diretórios e caches de compilação do Cabal
+dist/
 dist-*
-cabal-dev
+dist-newstyle/
+cabal-dev/
+.cabal-sandbox/
+cabal.sandbox.config
+cabal.project.local
+cabal.project.local~
+.ghc.environment.*
+
+# Executáveis binários gerados
+*.exe
+*.exe~
+*.bin
+*.out
+*.app
+
+# Objetos e interfaces compiladas (GHC)
 *.o
 *.hi
 *.hie
@@ -8,16 +29,35 @@ cabal-dev
 *.chs.h
 *.dyn_o
 *.dyn_hi
-.hpc
-.hsenv
-.cabal-sandbox/
-cabal.sandbox.config
+*.dump-*
+
+# Bibliotecas estáticas e dinâmicas
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+
+# Profiling, métricas e logs
 *.prof
 *.aux
 *.hp
 *.eventlog
-.stack-work/
-cabal.project.local
-cabal.project.local~
+
+# Cobertura de código e relatórios de teste (HPC, HTF)
+*.tix
+.hpc/
 .HTF/
-.ghc.environment.*
+
+# Ferramentas alternativas e ambientes (Stack, hsenv)
+.stack-work/
+.hsenv/
+
+# Arquivos de IDE e do Sistema Operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
